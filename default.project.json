@@ -2,10 +2,10 @@
   "name": "project",
   "tree": {
     "$className": "DataModel",
-    "ServerScriptService": {
-      "$className": "ServerScriptService",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
       "$ignoreUnknownInstances": true,
-      "$path": "src/ServerScriptService"
+      "$path": "src/ReplicatedStorage"
     }
   }
 }
