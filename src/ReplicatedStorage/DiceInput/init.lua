@@ -26,6 +26,7 @@
 	Input:Update(name,{keybinds}
 	Input:Began(name,{keybinds},function)
 	Input:Ended(name,{keybinds},function)
+	Input:Tapped(name,function)
 	
 [NOTES]:
 	inputObject.KeyCode
@@ -99,8 +100,8 @@ function Element:CreateButton(name)
 	icon.Size = UDim2.new(0.8, 0, 0.8, 0)
 	icon.ZIndex = 10
 	icon.Parent = button
-	button.Parent = Container
 	Element.Cache[name] = button
+	button.Parent = Container
 	return button
 end
 
@@ -209,8 +210,11 @@ function Input:Began(name,keys,code)
 		assert(typeof(key) == 'EnumItem')
 	end
 	
-	if Input.Debug and Input.Events[name] then
-		warn("[DICE INPUT]: '"..name.."' is already connected, disconnecting.")
+	if Input.Events[name] then
+		Input.Events[name] = nil
+		if Input.Debug then
+			warn("[DICE INPUT]: '"..name.."' is already connected, disconnecting.")
+		end
 	end
 	Input:Disconnect(name)
 	Input.Events[name] = {
@@ -239,14 +243,13 @@ function Input:Ended(name,keys,code)
 	}
 end
 
-function Input:Tap(name,code)
+function Input:Tapped(name,code)
 	assert(typeof(name) == 'string')
 	assert(typeof(code) == 'function')
 	
 	if Input.Debug and Input.Touch[name] then
 		warn("[DICE INPUT]: '"..name.."' is already connected, disconnecting.")
 	end
-	Input:Disconnect(name)
 	Input.Touch[name] = {
 		['Code'] = code;
 		['Type'] = 'Ended';
@@ -361,7 +364,7 @@ Services['UserInputService'].InputBegan:Connect(function(obj,processed)
 	if processed then return end
 	for name,data in pairs(Input.Cache) do
 		if data['Verify'] and data['Enabled'] and data['Function'] and data['Keys'] then
-			if table.find(data['Keys'],obj.KeyCode) then
+			if table.find(data['Keys'],obj.KeyCode) or table.find(data['Keys'],obj.UserInputType) then
 				Manager.wrap(function()
 					data['Function'](obj)
 				end)
@@ -371,7 +374,7 @@ Services['UserInputService'].InputBegan:Connect(function(obj,processed)
 	
 	for index,data in pairs(Input.Events) do
 		if data['Type'] == 'Began' then
-			if table.find(data['Keys'],obj.KeyCode) then
+			if table.find(data['Keys'],obj.KeyCode) or table.find(data['Keys'],obj.UserInputType) then
 				Manager.wrap(function()
 					data['Code'](obj)
 				end)
@@ -383,13 +386,22 @@ end)
 Services['UserInputService'].InputEnded:Connect(function(obj,processed)
 	if processed then return end
 	for index,data in pairs(Input.Events) do
-		if data.Type == 'Ended' then
-			if table.find(data.Keys,obj.KeyCode) then
+		if data['Type'] == 'Ended' then
+			if table.find(data['Keys'],obj.KeyCode) or table.find(data['Keys'],obj.UserInputType) then
 				Manager.wrap(function()
-					data.Code(obj)
+					data['Code'](obj)
 				end)
 			end
 		end
+	end
+end)
+
+Services['UserInputService'].TouchTap:Connect(function(obj,processed)
+	if processed then return end
+	for index,data in pairs(Input.Touch) do
+		Manager.wrap(function()
+			data['Code'](obj)
+		end)
 	end
 end)
 
